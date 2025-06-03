@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Sci-Fi Loot Generator</title>
+<style>
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #121212;
+    color: #eee;
+    margin: 0; padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+  }
+  h1 {
+    margin-bottom: 1rem;
+    font-weight: 600;
+  }
+  button {
+    background: #1e88e5;
+    border: none;
+    color: white;
+    padding: 0.8rem 1.4rem;
+    margin: 0.4rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: background-color 0.3s ease;
+  }
+  button:hover {
+    background: #1565c0;
+  }
+  #result {
+    margin-top: 1.5rem;
+    background: #222;
+    padding: 1.2rem 1.5rem;
+    border-radius: 6px;
+    width: 100%;
+    max-width: 600px;
+    min-height: 120px;
+    white-space: pre-wrap;
+    font-family: monospace;
+    box-sizing: border-box;
+  }
+  .editable-section {
+    margin-top: 2rem;
+    width: 100%;
+    max-width: 600px;
+    display: flex;
+    flex-direction: column;
+  }
+  label {
+    margin-top: 1rem;
+    font-weight: 600;
+  }
+  textarea {
+    background: #222;
+    border: 1px solid #444;
+    color: #eee;
+    font-family: monospace;
+    font-size: 0.9rem;
+    padding: 0.6rem;
+    border-radius: 4px;
+    resize: vertical;
+    min-height: 100px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+</style>
+</head>
+<body>
+
+<h1>Sci-Fi Loot Generator</h1>
+
+<div>
+  <button id="rollCashBtn">Roll Cash</button>
+  <button id="rollCashTrinketBtn">Roll Cash + Trinket</button>
+  <button id="rollCashTrinketWeaponBtn">Roll Cash + Trinket + Weapon</button>
+  <button id="rollCashTrinketWeaponArmorBtn">Roll Cash + Trinket + Weapon + Armour</button>
+</div>
+
+<div id="result" aria-live="polite"></div>
+
+<div class="editable-section">
+  <label for="trinketInput">Edit Trinket List (one per line):</label>
+  <textarea id="trinketInput" spellcheck="false"></textarea>
+
+  <label for="weaponInput">Edit Weapon List (one per line):</label>
+  <textarea id="weaponInput" spellcheck="false"></textarea>
+
+  <label for="armorInput">Edit Armour List (one per line):</label>
+  <textarea id="armorInput" spellcheck="false"></textarea>
+</div>
+
+<script>
+  // Default loot lists
+  const defaultTrinkets = [
+    "Loaded Dice — Weighted for a slight edge in games of chance.",
+    "Star Map Fragment — Shows a sector of an uncharted nebula.",
+    "Broken Commlink — Sparks when activated, useless but sentimental.",
+    "Military Dog Tag — Inscribed with a forgotten soldier's ID.",
+    "Energy Credit Card — Used for fast, universal transactions across colonies.",
+    "Locket with Family Photo — Contains a smiling family from Earth, faded but cherished.",
+    "Plasma Grenade (Prototype) — This pulled-pin grenade is volatile and unstable. Anyone who tries to loot or handle it without disarming must succeed on a DC 16 Dexterity saving throw or take 1d8 damage from the sudden plasma explosion within a 5-ft radius. Beware — it's basically a trap waiting to go off!",
+    "Holo-Pen — Projects a tiny holographic star chart when activated.",
+    "Alien Trinket — A strange carved figurine, purpose unknown.",
+    "Signal Jammer Chip — Temporarily disrupts short-range communications.",
+    "Nano-Repair Kit — Repairs minor tech malfunctions.",
+    "Gravity Regulator — Small device to stabilize footing in zero-G.",
+    "Smuggler's Cipher — Codebook for secret transmissions.",
+    "Synthetic Crystal — Emits a faint pulse of energy.",
+    "Plasma Torch Lighter — Used for welding or lighting fires in emergencies.",
+    "Personal Shield Emitter — Small device that projects a weak force field for 10 seconds.",
+    "Galactic Pass — An outdated transit permit for deep space travel.",
+    "Ancient Coin — From a long-lost colony world.",
+    "Cybernetic Eye Lens — Replacement part for an ocular implant.",
+    "Magnetic Lockpick — Useful for opening certain electronic locks.",
+    "Alien Language Decoder — Basic phrasebook for communication.",
+    "Space Ration Bar — Nutritious but bland.",
+    "Quantum Flux Watch — Keeps time with extraordinary precision.",
+    "Data Spike — Portable hacking tool.",
+    "Mini Holo-Projector — Displays recorded messages or images.",
+    "Starship Maintenance Log — Handwritten notes by an old mechanic.",
+    "Biometric Scanner — Small device for identifying individuals.",
+    "Artificial Medkit — Contains basic healing chemicals.",
+    "Spaceweed Pipe — A novelty item from off-world markets.",
+    "Electro-Compass — Points toward the nearest starbase.",
+    "Alien Seed Pod — Strange plant material, possibly hazardous.",
+    "Starship Fuel Cell — Small power source for emergency use.",
+    "Holographic Playing Cards — Cards that animate as you play.",
+    "Cybernetic Enhancement Chip — Minor performance boost implant.",
+    "Personal AI Assistant — Portable device with limited AI.",
+    "Magnetic Grappling Hook — For climbing or securing objects.",
+    "Neural Uplink Cable — Connects to cybernetic devices.",
+    "Plasma Cutter — Mini tool for slicing metal.",
+    "Star Chart Pendant — Jewelry with hidden star map.",
+    "Space Marine Rank Badge — Military-themed insignia.",
+    "Pulse Scanner — Detects life signs within a 10-ft radius.",
+    "Cryo Capsule — Small device used to preserve samples.",
+    "Comet Dust Vial — Sparkling powder used for rituals.",
+    "Grav Boots Battery — Replacement power cell.",
+    "Energy Cell Pack — Provides energy for various devices.",
+    "Tactical Smoke Grenade — Emits dense smoke for cover.",
+    "Holocron — Contains encrypted data or lore.",
+    "Space Salvage Tag — Marks items for auction or retrieval.",
+    "Starship Emergency Beacon — Sends distress signals.",
+    "Alien Artifact Shard — Fragment of unknown origin, hums faintly."
+  ];
+
+  const defaultWeapons = [
+    "Ion Saber — 1d8 radiant; cuts through force fields with advantage.",
+    "Phase Blade — 1d6 psychic, ignores non-magical armor.",
+    "Vulcan Repeater — Rapid-fire blaster; bonus action to fire second shot (1d4).",
+    "Sonic Disruptor — 1d10 thunder, creatures hit make CON save or be deafened.",
+    "Gravity Lash — Whip-like weapon; on crit, restrains target until end of next turn.",
+    "Gauss Rifle — 1d8 force, long range; ignores half cover.",
+    "Chem Injector — Melee syringe deals 1d4 + poison, with chance to cause confusion.",
+    "Arc Carbine — 1d6 lightning; chains to second target within 5 ft (1d4).",
+    "Starfire Pistol — 1d6 fire, glows brightly, causes fear on natural 20.",
+    "Displacer Spear — 1d8 piercing, teleport up to 10 ft after a hit.",
+    "Neural Scythe — 2d4 psychic, causes hallucinations (DC 13 WIS save).",
+    "Meteor Mallet — 1d10 bludgeoning; knocks flying targets prone.",
+    "Pulse Shotgun — Cone attack, 2d6 damage, save for half.",
+    "Static Knuckles — 1d4 lightning; advantage on grapple checks.",
+    "Cryo Spanner — 1d8 cold, slows target's movement.",
+    "Explosive Dart Gun — Loads mini-grenades, 1d6 fire + splash.",
+    "Mag Blade — Dagger that re-forms in hand when dropped.",
+    "Plasma Pike — Reach weapon; deals 1d10 radiant.",
+    "Force Buckler Blade — Bonus-action shield strike, 1d4 force.",
+    "EMP Axe — 1d8, disables one non-magical item on hit (1/day).",
+    "Nebula Whip — Disorients foes, -1 to hit for 1 turn on a hit.",
+    "Quantum Bow — Arrows phase through armor; 1d6 force damage.",
+    "Ion Grenade Launcher — Area burst, 3d6 damage, 15-ft radius.",
+    "Electro Chain — Melee chain weapon; can trip targets.",
+    "Solar Flare Cannon — 2d10 fire, limited shots (2 per day).",
+    "Plasma Thrower — Cone, continuous fire, 3d6 damage over 3 rounds.",
+    "Pulse Rifle — Standard issue; 1d8 force damage.",
+    "Railgun — 1d12 piercing, ignores cover.",
+    "Taser Gloves — Melee, 1d4 lightning, chance to stun.",
+    "Vibro Sword — 1d8 slashing, counts as magical.",
+    "Laser Pistol — 1d6 radiant, high accuracy.",
+    "Nano Dagger — 1d4, bypasses armor.",
+    "Shock Baton — 1d6 lightning, bonus action to stun.",
+    "Holo Blade — 1d6 psychic, deals damage to incorporeal targets.",
+    "Magnetic Throwing Stars — Ranged, 1d4 + 1 damage.",
+    "Cryo Cannon — Cone of cold, 2d8 damage.",
+    "Ionized Net — Restrains target, DC 14 STR save to escape.",
+    "Energy Crossbow — 1d8, fires bolts of pure energy.",
+    "Pulse Hammer — 1d10 bludgeoning + 1d6 lightning.",
+    "Gravity Gun — Push or pull objects or enemies up to 20 ft.",
+    "EMP Knife — Melee, disables electronic devices on hit.",
+    "Laser Cutter — Utility weapon, deals 1d6 fire.",
+    "Photon Blaster — 1d8 radiant, high crit chance.",
+    "Stun Baton — Melee, 1d6, chance to paralyze.",
+    "Shock Rifle — 1d10 lightning, chance to chain targets.",
+    "Nano Blade Gauntlet — Melee, 1d8 slashing.",
+    "Flame Thrower — Cone, continuous fire, 3d6 fire damage.",
+    "Sonic Cannon — Area attack, 2d8 thunder damage.",
+    "Magnetic Pulse Rifle — 1d8 force, disables shields."
+  ];
+
+  const defaultArmour = [
+    "Nano-weave Suit — +2 AC, lightweight and flexible.",
+    "Plasma Shield — +1 AC, absorbs one energy attack per encounter.",
+    "Gravity Harness — +1 AC, grants advantage on jump checks.",
+    "Stealth Cloak — +1 AC, advantage on stealth checks.",
+    "Energy Deflector — +3 AC, recharges after short rest.",
+    "Exo-Skeleton — +2 AC, doubles carrying capacity.",
+    "Reactive Armor — +1 AC, deals 1d4 damage to melee attackers.",
+    "Holo-Shield Projector — +1 AC, projects illusory duplicates.",
+    "Thermal Suit — +2 AC, resistant to cold damage.",
+    "Magnetic Plate — +3 AC, disadvantage on stealth but resistant to bludgeoning.",
+    "Cybernetic Armor Plating — +2 AC, integrated into limbs.",
+    "Radiation Shield — +1 AC, protects against radiation zones.",
+    "Force Field Belt — +2 AC, lasts 1 minute per activation.",
+    "Light Combat Harness — +1 AC, enhances agility.",
+    "Bio-Armor — +2 AC, self-repairing over time.",
+    "Jetpack Armor — +1 AC, allows short bursts of flight.",
+    "EMP-Resistant Suit — +2 AC, immune to EMP effects.",
+    "Adaptive Camouflage — +1 AC, blends with environment.",
+    "Shock-Absorbing Suit — +3 AC, reduces fall damage.",
+    "Thermal Regulator — +1 AC, stabilizes body temperature.",
+    "Combat Exosuit — +3 AC, enhances strength and endurance.",
+    "Reflective Armor — +2 AC, reflects 10% energy damage.",
+    "Nanobot Weave — +2 AC, heals minor wounds.",
+    "Sound Dampening Armor — +1 AC, reduces noise when moving.",
+    "Powered Armor — +3 AC, powered servos increase movement speed.",
+    "Pressure Suit — +1 AC, essential for deep space or underwater.",
+    "Reactive Plating — +2 AC, hardens when hit.",
+    "Stealth Suit — +2 AC, muffles movement and visual signature.",
+    "Energy Absorption Suit — +1 AC, converts damage to power.",
+    "Lightweight Combat Armor — +1 AC, high mobility.",
+    "Heavy Duty Armor — +3 AC, slows movement but high defense.",
+    "Magnetic Field Armor — +2 AC, disrupts incoming magnetic attacks.",
+    "Electrostatic Suit — +1 AC, shocks melee attackers.",
+    "Force Field Helmet — +1 AC, protects head, grants advantage on perception.",
+    "Plasma Resistant Armor — +3 AC, resistant to plasma weapons.",
+    "Nanite Repair Suit — +2 AC, repairs damage during combat.",
+    "Shockwave Absorbing Suit — +2 AC, reduces knockback.",
+    "Reactive Energy Armor — +3 AC, energy shield that recharges slowly.",
+    "Thermal Insulation Suit — +1 AC, protects from extreme heat or cold.",
+    "Exo-Frame Armor — +3 AC, enhances physical attacks.",
+    "Radiation Suit — +2 AC, essential for toxic environments.",
+    "Hydro Armor — +1 AC, aids in underwater movement.",
+    "Nano-Steel Mesh — +2 AC, lightweight but durable.",
+    "Plasma-Resistant Exosuit — +3 AC, high resistance to plasma damage.",
+    "Adaptive Shielding Armor — +2 AC, changes properties based on environment.",
+    "Shock-Field Suit — +1 AC, disrupts electrical attacks.",
+    "Quantum Phase Suit — +3 AC, can phase through attacks once per day.",
+    "Energy Dampening Armor — +2 AC, reduces magical damage.",
+    "Reinforced Combat Suit — +2 AC, improved durability."
+  ];
+
+  // Utility: Get random element from array
+  function randomChoice(arr) {
+    return arr[Math.floor(Math.random() * arr.length)];
+  }
+
+  // New cash roll function with progressive difficulty
+  function rollCash() {
+    const possibleValues = [];
+    // Generate all possible values (1000 to 15000 in 500 increments)
+    for (let i = 1000; i <= 15000; i += 500) {
+      possibleValues.push(i);
+    }
+    
+    // Create weighted probabilities
+    const weights = [];
+    const baseChance = 1;
+    const reductionPerStep = 0.05; // 5% reduction per step above 5000
+    const maxReduction = 0.95; // 95% max reduction
+    
+    for (let i = 0; i < possibleValues.length; i++) {
+      const value = possibleValues[i];
+      if (value <= 5000) {
+        // Flat distribution for values ≤ 5000
+        weights.push(baseChance);
+      } else {
+        // Calculate how many steps above 5000 we are
+        const stepsAbove = (value - 5000) / 500;
+        // Calculate reduction (capped at 95%)
+        const reduction = Math.min(stepsAbove * reductionPerStep, maxReduction);
+        // Higher values get progressively lower chances
+        weights.push(baseChance * (1 - reduction));
+      }
+    }
+    
+    // Normalize weights to sum to 1
+    const sumWeights = weights.reduce((a, b) => a + b, 0);
+    const normalizedWeights = weights.map(w => w / sumWeights);
+    
+    // Select a value based on weighted probabilities
+    let random = Math.random();
+    let weightSum = 0;
+    
+    for (let i = 0; i < possibleValues.length; i++) {
+      weightSum += normalizedWeights[i];
+      if (random <= weightSum) {
+        return `${possibleValues[i].toLocaleString()} credits`;
+      }
+    }
+    
+    // Fallback to 1000 if something goes wrong
+    return "1,000 credits";
+  }
+
+  // Main function to generate loot based on selections
+  function generateLoot(includeTrinket, includeWeapon, includeArmour) {
+    let loot = `Cash: ${rollCash()}`;
+    if (includeTrinket) {
+      loot += `\nTrinket: ${randomChoice(trinkets)}`;
+    }
+    if (includeWeapon) {
+      loot += `\nWeapon: ${randomChoice(weapons)}`;
+    }
+    if (includeArmour) {
+      loot += `\nArmour: ${randomChoice(armour)}`;
+    }
+    return loot;
+  }
+
+  // Load from editable textareas or default lists
+  function loadLists() {
+    trinkets = parseTextarea(document.getElementById('trinketInput').value, defaultTrinkets);
+    weapons = parseTextarea(document.getElementById('weaponInput').value, defaultWeapons);
+    armour = parseTextarea(document.getElementById('armorInput').value, defaultArmour);
+  }
+
+  // Parse textarea input into array; fallback to default if empty
+  function parseTextarea(text, defaultList) {
+    const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+    return lines.length ? lines : defaultList;
+  }
+
+  // Initialize textareas with default lists on page load
+  function initializeTextareas() {
+    document.getElementById('trinketInput').value = defaultTrinkets.join('\n');
+    document.getElementById('weaponInput').value = defaultWeapons.join('\n');
+    document.getElementById('armorInput').value = defaultArmour.join('\n');
+  }
+
+  // Event handlers for buttons
+  function setupEventListeners() {
+    document.getElementById('rollCashBtn').addEventListener('click', () => {
+      loadLists();
+      document.getElementById('result').textContent = generateLoot(false, false, false);
+    });
+
+    document.getElementById('rollCashTrinketBtn').addEventListener('click', () => {
+      loadLists();
+      document.getElementById('result').textContent = generateLoot(true, false, false);
+    });
+
+    document.getElementById('rollCashTrinketWeaponBtn').addEventListener('click', () => {
+      loadLists();
+      document.getElementById('result').textContent = generateLoot(true, true, false);
+    });
+
+    document.getElementById('rollCashTrinketWeaponArmorBtn').addEventListener('click', () => {
+      loadLists();
+      document.getElementById('result').textContent = generateLoot(true, true, true);
+    });
+  }
+
+  // Initialize app
+  let trinkets = [];
+  let weapons = [];
+  let armour = [];
+
+  initializeTextareas();
+  loadLists();
+  setupEventListeners();
+</script>
+
+</body>
+</html>
